@@ -1,0 +1,45 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    outline: 0;
+    font-size: 100%;
+    vertical-align: baseline;
+    background: transparent;
+}
+
+.hover {
+    cursor: pointer;
+}
+
+#quizletcards {
+    margin: auto;
+    width: 80%;
+    margin-bottom: 2rem;
+}
+.quizletdiv {
+    display: flex;
+}
+.quizletp {
+    display: flex;
+    justify-content: center;
+    border: 1px solid black;
+    padding: 0.5rem 0;
+}
+.start-game-button {
+    border-radius: 15px;
+    background: linear-gradient(90deg, rgb(85, 169, 225), rgb(23, 89, 165));
+    font-size: 1.2rem;
+    padding: 0.5rem 1rem;
+    margin: 0 auto 2rem auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 30%;
+    color: white;
+    font: bold;
+}
