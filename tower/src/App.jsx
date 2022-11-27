@@ -4,18 +4,29 @@ import { useRef } from 'react';
 import axios from 'axios';
 import { useState } from 'react';
 import {app, auth, db} from './firebase';
-import { collection, deleteDoc, doc, onSnapshot } from 'firebase/firestore';
+import { addDoc, collection, deleteDoc, doc, onSnapshot, updateDoc } from 'firebase/firestore';
 import { useEffect } from 'react';
-import {GoogleAuthProvider, onAuthStateChanged, signInWithPopup} from 'firebase/auth';
+import {GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut} from 'firebase/auth';
 import {GoogleButton} from 'react-google-button';
 
 function App() {
   //single id of doc containing quizlet card info inside collection with name of user.email
   const [docid, setdocid] = useState('');
   const [User, setUser] = useState();
+  //either join or create or none (before user chooses)
+  const [mode, setmode] = useState('none');
+  const [linksubmissionloading, setlinksubmissionloading] = useState(false);
   const text = useRef();
-  // User && deleteDoc(doc(db, User.email.toString(),docid));
+  const quizletcardstitle = document.querySelector('#quizletcardstitle');
+  const quizletcards = document.querySelector('#quizletcards');
+  const startgamebutton = document.querySelector('.start-game-button');
+
   function submitClick() {
+    docid && deleteDoc(doc(db, `${User.email} link`, docid));
+    setlinksubmissionloading(true);
+    if (quizletcardstitle) quizletcardstitle.innerHTML = '';
+    if (quizletcards) quizletcards.innerHTML = '';
+    startgamebutton && startgamebutton.remove();
     const options = {
       method: 'GET',
       url: "http://localhost:8000/results",
@@ -47,13 +58,14 @@ function App() {
           setdocid(doc.id);
           links.push({...doc.data()});
         })
+        if (document.querySelector('#quizletcards').innerHTML === '' && links[0]) {
+          setlinksubmissionloading(false);
 
-        if (document.querySelector('#quizletcards').innerHTML === '') {
           let startdiv = document.createElement('div');
           startdiv.classList.add('quizletdiv');
           startdiv.innerHTML = '<p class="quizletp" style="width: 50%">Term</p><p class="quizletp" style="width: 50%">Definition</p>';
-          document.querySelector('#quizletcards').append(startdiv);
-  
+          document.querySelector('#quizletcardstitle').append(startdiv);
+
           let array = links[0].info;
           for (let i = 0; i < array.length/2; i++) {
             let div = document.createElement('div');
@@ -61,29 +73,46 @@ function App() {
             div.innerHTML = `<p class="quizletp" style="width: 50%">${array[i]}</p><p class="quizletp" style="width: 50%">${array[i+1]}</p>`;
             document.querySelector('#quizletcards').append(div);
           }
-          let div = document.createElement('div');
-          div.classList.add('hover');
-          div.classList.add('start-game-button');
-          div.textContent = 'Start Game';
-          document.body.append(div);
         }
         return unsub;
       })
     }
   }, [User])
+
+  function signout() {
+    signOut(auth);
+  }
   return (
     <div className="App">
-      <img className='h-[50vh] w-full object-cover relative blur-[3px]' src="https://i.fbcd.co/products/original/2105-m10-i017-n020-mainpreview-32de471848ee6e252675f12203e3490c48b2a5d31c4e83c2f2c202c82697dc33.jpg"/>
-      <h2 className='absolute top-1/4 left-2/4 z-[3] -translate-x-2/4 -translate-y-2/4 text-3xl'>Welcome to my Tower Game</h2>
+        <img className='absolute w-full h-[100vh] z-[-1] object-cover blur-[1px]' src={`../images/pattern.png`}/>
+        {/* {User && <div onClick={signout} className='hover hover:underline rounded-[15px] bg-gray-400 text-xl absolute right-5 top-3 text-white font-bold px-4 py-2'>Log out</div>} */}
+      {!User && <h2 className='absolute top-[20%] left-2/4 z-[3] -translate-x-2/4 -translate-y-2/4 text-[3rem] w-full md:text-[4rem] font-bold text-white text-center'>Welcome to my Tower Game!</h2>}
       {
-        User ? <div className='relative flex flex-col items-center'>
-          <p className='text-2xl'>Enter link of your quizlet</p>
-          <input className='w-2/4 my-2 border-solid border-black border-2 px-2' ref={text} type="text"/>
-          <input className='hover border-solid mb-4 text-xl bg-blue-400 font-bold text-white px-4 rounded-[10px] mt-2' onClick={submitClick} type="submit"/>
-          <div id="quizletcards"></div>
-        </div> : <div className='flex flex-col items-center'>
-          <p className='my-4 text-xl'>Please sign in with google to start the tower game</p>
-          <GoogleButton className='text-[1rem]' onClick={signinwithgoogle}/>
+        User ? <div id="infobar" className='absolute flex flex-col items-center bg-blue-600 w-[80%] h-[80%] top-2/4 left-2/4 z-[3] -translate-x-2/4 -translate-y-2/4'>
+          <p className='text-white text-[4rem] mt-8'>Menu</p>
+          <div className='bg-gradient-to-r from-green-400 to-green-600 rounded-[15px] text-white font-bold text-3xl px-8 py-2 mb-8 mt-10 hover hover:underline'>Create Game</div>
+          <div className='bg-gradient-to-r from-green-400 to-green-600 rounded-[15px] text-white font-bold text-3xl px-8 py-2 hover hover:underline'>Join Game</div>
+          
+          <div id="creategame" className='w-full' style={{display: mode === 'create' ? block : 'none'}}>
+            {
+              linksubmissionloading ? <div className='flex flex-col justify-center items-center'>
+                <p className='text-2xl mb-2'>Loading your flashcard info</p>
+                <img className='w-[25%]' src="https://media0.giphy.com/media/xTk9ZvMnbIiIew7IpW/giphy.gif"/>
+              </div> : <div className='flex flex-col items-center w-full mt-4'>
+                <p className='text-2xl'>Enter link of your quizlet</p>
+                <input className='w-[60%] my-2 border-solid border-black border-2 px-2' ref={text} type="text"/>
+                <input className='hover border-solid mb-8 text-xl bg-blue-400 font-bold text-white px-[4rem] py-[0.2rem] rounded-[20px] mt-2' onClick={submitClick} type="submit"/>
+                <div id="quizletcardscontainer">
+                  <div id="quizletcardstitle"></div>
+                  <div id="quizletcards"></div>
+                  <div className='hidden hover' id="startgamebutton">Start Game</div>
+                </div>
+              </div>
+            }
+          </div>
+        </div> : <div className='bg-blue-600 px-16 py-8 flex flex-col items-center absolute left-2/4 top-2/4 -translate-x-2/4 -translate-y-2/4'>
+          <p className='my-4 text-2xl font-bold text-white text-center'>Sign in with Google to play</p>
+          <GoogleButton className='text-[1rem] mt-4' onClick={signinwithgoogle}/>
         </div>
       }
     </div>

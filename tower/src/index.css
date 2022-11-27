@@ -16,9 +16,11 @@
     cursor: pointer;
 }
 
+#quizletcardscontainer {
+    width: 80%;
+}
 #quizletcards {
     margin: auto;
-    width: 80%;
     margin-bottom: 2rem;
 }
 .quizletdiv {
@@ -30,7 +32,7 @@
     border: 1px solid black;
     padding: 0.5rem 0;
 }
-.start-game-button {
+#start-game-button {
     border-radius: 15px;
     background: linear-gradient(90deg, rgb(85, 169, 225), rgb(23, 89, 165));
     font-size: 1.2rem;
