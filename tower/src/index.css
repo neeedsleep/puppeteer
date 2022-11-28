@@ -35,7 +35,7 @@
     align-items: center;
     text-align: center;
     border: 1px solid white;
-    padding: 0.5rem 0;
+    padding: 0.5rem 0.5rem;
 }
 #startgamebutton {
     border-radius: 25px;

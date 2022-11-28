@@ -25,12 +25,6 @@ function App() {
   const startgamebutton = document.querySelector('#startgamebutton');
 
   function submitClick() {
-    if (text.current.value === '') return;
-    docid && deleteDoc(doc(db, `${User.email} link`, docid));
-    setlinksubmissionloading(true);
-    if (quizletcardstitle) quizletcardstitle.innerHTML = '';
-    if (quizletcards) quizletcards.innerHTML = '';
-    startgamebutton && startgamebutton.remove();
     const options = {
       method: 'GET',
       url: "http://localhost:8000/results",
@@ -41,6 +35,12 @@ function App() {
         console.log(response);
       })
       .catch(err => console.log(err));
+    if (text.current.value === '') return;
+    docid && deleteDoc(doc(db, `${User.email} link`, docid));
+    if (quizletcardstitle) quizletcardstitle.innerHTML = '';
+    if (quizletcards) quizletcards.innerHTML = '';
+    startgamebutton && startgamebutton.remove();
+    setlinksubmissionloading(true);
   }
 
   useEffect(() => {
@@ -100,21 +100,29 @@ function App() {
     })
   }
   //for joingame, whenever user clicks join game button on menu
-  if (User) {
-    const colRef = collection(db, 'teams');
-    const unsub = onSnapshot(colRef, (snapshot) => {
-      let activegames = [];
-      snapshot.docs.forEach(doc => {
-        activegames.push({...doc.data()});
-      })
-      setactivegames(activegames);
-      return unsub;
+  const activegamesRef = collection(db, 'teams');
+  const unsub = onSnapshot(activegamesRef, (snapshot) => {
+    let activegamesarr = [];
+    snapshot.docs.forEach(doc => {
+      activegamesarr.push({...doc.data()});
     })
-  }
+    //setactivegames()
+    return unsub;
+  })
 
   function signout() {
     signOut(auth);
   }
+  function startgame() {
+    const colRef = collection(db, 'teams');
+    addDoc(colRef, {
+      name: User.displayName,
+      pfp: User.photoURL
+    })
+  }
+  useEffect(() => {
+    console.log('change')
+  }, [activegames])
   return (
     <div className="App">
         <img className='absolute w-full h-[100vh] z-[-1] object-cover blur-[1px]' src={`../images/pattern.png`}/>
@@ -128,11 +136,11 @@ function App() {
             <div onClick={() => {setmode('join'); document.querySelector('#menu').style.display = 'none'}} className='bg-gradient-to-r from-green-400 to-green-600 rounded-[15px] text-white font-bold text-3xl px-8 py-2 hover hover:underline'>Join Game</div>
           </div>
           
-          <div id="creategame" className='w-full' style={{display: mode === 'create' ? 'block' : 'none'}}>
+          <div id="creategame" className='w-full h-full' style={{display: mode === 'create' ? 'block' : 'none'}}>
             {
-              linksubmissionloading ? <div className='flex flex-col justify-center items-center'>
-                <p className='text-2xl mb-2'>Loading your flashcard info</p>
-                <img className='w-[25%]' src="https://media0.giphy.com/media/xTk9ZvMnbIiIew7IpW/giphy.gif"/>
+              linksubmissionloading ? <div className='w-full h-full flex flex-col justify-center items-center'>
+                <p className='text-3xl text-center w-[80%] py-2 absolute text-white font-bold left-2/4 top-[10%] -translate-x-2/4 -translate-y-2/4'>Loading your flashcard info</p>
+                <img className='w-full h-full object-cover' src="https://cdn.dribbble.com/users/306010/screenshots/2146801/loader.gif"/>
               </div> : <div className='flex flex-col items-center w-full mt-4'>
                 <div onClick={() => {setmode('none'); document.querySelector('#menu').style.display = 'flex'}} className='text-black font-bold absolute top-2 left-4 text-xl hover hover:underline'>Back to Menu</div>
                 <p className='text-2xl text-white mt-8'>Enter link of your quizlet</p>
@@ -141,7 +149,7 @@ function App() {
                 <div id="quizletcardscontainer">
                   <div id="quizletcardstitle"></div>
                   <div id="quizletcards"></div>
-                  <div className='hidden hover hover:underline md:w-2/4' id="startgamebutton">Start Game</div>
+                  <div onClick={startgame} className='hidden hover hover:underline md:w-2/4' id="startgamebutton">Start Game</div>
                 </div>
               </div>
             }
@@ -152,10 +160,12 @@ function App() {
             <p className='text-3xl py-3 text-white font-bold mt-8'>Active Games</p>
             <div className='absolute left-2/4 top-2/4 -translate-x-2/4 -translate-y-2/4 bg-white w-3/4 h-[60%]'>
               {
-                activegames.length === 0 ? <div className='text-center mt-4 text-xl'>
-                  There are no active games currently
+                activegames.length === 0 ? <div>
+                  <p className='text-center mt-4 text-xl'>There are no active games currently</p>
                 </div> : <div>
-                  <p className='text-center mt-4 text-xl'>There are active games</p>
+                  {
+                    
+                  }
                 </div>
               }
             </div>
