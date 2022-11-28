@@ -21,14 +21,7 @@ let useremail;
 app.get('/results', (req, res) => {
     link = req.query.link.toString();
     useremail = req.query.user;
-    action().then(() => {
-        const docRef = admin.firestore().collection(`${useremail} link`).doc();
-        docRef.set({
-            useremail: useremail,
-            info: quizletinfo
-        })
-    })
-    
+    action()
 })
 app.listen(port, () => console.log('running on port ' + port));
 async function action() {
@@ -37,6 +30,13 @@ async function action() {
     await page.goto(link.toString())
         .catch((err) => {
             console.log('THERE IS AN ERROR: ' + err);
+            const docRef = admin.firestore().collection(`${useremail} link`).doc();
+            docRef.set({
+                useremail: useremail,
+                error: 'error'
+            })
+            browser.close();
+            return;
         })
     const getinfo = await page.evaluate(() => {
         const info = document.querySelectorAll('.TermText');
@@ -48,4 +48,12 @@ async function action() {
     })
     quizletinfo = getinfo;
     console.log('info', quizletinfo);
+    if (quizletinfo[0]) {
+        const docRef = admin.firestore().collection(`${useremail} link`).doc();
+        docRef.set({
+            useremail: useremail,
+            info: quizletinfo
+        })
+    }
+    browser.close();
 }
