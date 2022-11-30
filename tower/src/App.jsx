@@ -16,10 +16,15 @@ function App() {
   const [loading, setloading] = useState(true);
   //either join or create or none (before user chooses)
   const [mode, setmode] = useState('none');
-  //list of active games to join
+  //because putting setactivegames to array inside onsnapshot causes infinite rerenders 
+  const [toggleactivegames, settoggleactivegames] = useState(false);
+    //list of active games to join
   const [activegames, setactivegames] = useState([]);
   const [linksubmissionloading, setlinksubmissionloading] = useState(false);
+  const [displayname, setdisplayname] = useState('');
+
   const text = useRef();
+
   const quizletcardstitle = document.querySelector('#quizletcardstitle');
   const quizletcards = document.querySelector('#quizletcards');
   const startgamebutton = document.querySelector('#startgamebutton');
@@ -101,28 +106,40 @@ function App() {
   }
   //for joingame, whenever user clicks join game button on menu
   const activegamesRef = collection(db, 'teams');
+  let activegamesarr = [];
   const unsub = onSnapshot(activegamesRef, (snapshot) => {
-    let activegamesarr = [];
     snapshot.docs.forEach(doc => {
       activegamesarr.push({...doc.data()});
     })
-    //setactivegames()
+    settoggleactivegames(toggleactivegames => !toggleactivegames);
     return unsub;
   })
-
+  useEffect(() => {
+    setactivegames(activegamesarr);
+  }, [toggleactivegames])
+  useEffect(() => {
+    console.log('change', activegames);
+  }, [activegames])
+  
   function signout() {
     signOut(auth);
   }
   function startgame() {
     const colRef = collection(db, 'teams');
     addDoc(colRef, {
-      name: User.displayName,
+      name: displayname,
       pfp: User.photoURL
     })
   }
-  useEffect(() => {
-    console.log('change')
-  }, [activegames])
+  function checknameinput(e, modeparam) {
+    e.preventDefault();
+    const enternameinput = document.querySelector('#enternameinput');
+    if (enternameinput.value.length > 0) {
+      setmode(modeparam);
+      document.querySelector('#menu').style.display = 'none';
+      setdisplayname(enternameinput.value);
+    }
+  }
   return (
     <div className="App">
         <img className='absolute w-full h-[100vh] z-[-1] object-cover blur-[1px]' src={`../images/pattern.png`}/>
@@ -130,11 +147,12 @@ function App() {
         {!loading && !User && <h2 className='absolute top-[20%] left-2/4 z-[3] -translate-x-2/4 -translate-y-2/4 text-[3rem] w-full md:text-[4rem] font-bold text-white text-center'>Welcome to my Tower Game!</h2>}
       { loading ? <div></div> :
         User ? <div id="infobar" className='absolute flex flex-col items-center bg-blue-600 w-[80%] h-[80%] top-2/4 left-2/4 z-[3] -translate-x-2/4 -translate-y-2/4'>
-          <div className='flex flex-col justify-center items-center' id="menu">
-            <p className='text-white text-[4rem] mt-8'>Menu</p>
-            <div onClick={() => {setmode('create'); document.querySelector('#menu').style.display = 'none'}} className='bg-gradient-to-r from-green-400 to-green-600 rounded-[15px] text-white font-bold text-3xl px-8 py-2 mb-8 mt-10 hover hover:underline'>Create Game</div>
-            <div onClick={() => {setmode('join'); document.querySelector('#menu').style.display = 'none'}} className='bg-gradient-to-r from-green-400 to-green-600 rounded-[15px] text-white font-bold text-3xl px-8 py-2 hover hover:underline'>Join Game</div>
-          </div>
+          <form className='flex flex-col justify-center items-center w-full' id="menu">
+            <p className='text-white text-[4rem] mt-10'>Menu</p>
+            <input required id="enternameinput" type="text" placeholder='Enter Your Dispay Name' maxLength={15} className='bg-white border-2 py-2 px-2 w-[60%] text-center rounded-[10px] mt-4'/>
+            <input type="submit" onClick={(e) => checknameinput(e, 'create')} className='bg-gradient-to-r from-green-400 to-green-600 rounded-[15px] text-white font-bold text-3xl px-8 py-2 mb-8 mt-10 hover hover:underline' value="Create Game" />
+            <input type="submit" onClick={(e) => checknameinput(e, 'join')} className='bg-gradient-to-r from-green-400 to-green-600 rounded-[15px] text-white font-bold text-3xl px-8 py-2 hover hover:underline' value="Join Game" />
+          </form>
           
           <div id="creategame" className='w-full h-full' style={{display: mode === 'create' ? 'block' : 'none'}}>
             {
