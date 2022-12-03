@@ -83,3 +83,12 @@
         transform: translat(-50%, -100%);
     }
 }
+
+.greenbutton {
+    padding: 0.2rem 1rem;
+    background: linear-gradient(90deg, rgb(78, 232, 78), rgb(20, 161, 20));
+    font-size: bold;
+    color: white;
+    font-size: 1rem;
+    border-radius: 20px;
+}

@@ -10,6 +10,8 @@ import {GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut} from '
 import {GoogleButton} from 'react-google-button';
 
 function App() {
+  let width = window.innerWidth;
+  console.log(width);
   //single id of doc containing quizlet card info inside collection with name of user.email
   const [docid, setdocid] = useState('');
   const [User, setUser] = useState();
@@ -105,21 +107,26 @@ function App() {
     })
   }
   //for joingame, whenever user clicks join game button on menu
-  const activegamesRef = collection(db, 'teams');
-  let activegamesarr = [];
-  const unsub = onSnapshot(activegamesRef, (snapshot) => {
+  const joingametext = document.querySelector('#joingametext');
+  const unsub = onSnapshot(collection(db, 'teams'), (snapshot) => {
+    let activegamesarr = [];
     snapshot.docs.forEach(doc => {
       activegamesarr.push({...doc.data()});
     })
-    settoggleactivegames(toggleactivegames => !toggleactivegames);
+    joingametext.innerHTML = '';
+    activegamesarr.forEach(val => {
+      let imgurl = val.pfp.toString();
+      let div = document.createElement('div');
+      if (width > 500) {
+        div.style = "display: flex; align-items: center; margin-bottom: 1rem;";
+      } else {
+        div.style = "margin-bottom: 1rem;";
+      }
+      div.innerHTML = `<img style="border-radius: 50%; width: 2rem;" src=${imgurl}><span style="margin-left: 1rem; margin-right: 2.5rem;">${val.name}'s game</span><button class="greenbutton">Join Game</button>`;
+      joingametext.append(div);
+    })
     return unsub;
   })
-  useEffect(() => {
-    setactivegames(activegamesarr);
-  }, [toggleactivegames])
-  useEffect(() => {
-    console.log('change', activegames);
-  }, [activegames])
   
   function signout() {
     signOut(auth);
@@ -133,23 +140,39 @@ function App() {
   }
   function checknameinput(e, modeparam) {
     e.preventDefault();
+    const enternameinputinvisible = document.querySelector('#enternameinputinvisible');
     const enternameinput = document.querySelector('#enternameinput');
+    const usernamediv = document.querySelector('#username');
+    enternameinputinvisible.textContent = '';
+    enternameinput.style.border = '';
     if (enternameinput.value.length > 0) {
       setmode(modeparam);
       document.querySelector('#menu').style.display = 'none';
       setdisplayname(enternameinput.value);
+
+      usernamediv.textContent = `Name: ${enternameinput.value}`;
+      usernamediv.style.display = 'block';
+    } else {
+      enternameinput.style.border = '2px solid red';
+      enternameinputinvisible.textContent = 'Please type in a display name';
+      enternameinputinvisible.style.width = '60%';
+      enternameinputinvisible.style.color = 'red';
+      enternameinputinvisible.style.fontSize = 'bold';
     }
   }
+
   return (
     <div className="App">
         <img className='absolute w-full h-[100vh] z-[-1] object-cover blur-[1px]' src={`../images/pattern.png`}/>
         {User && <div onClick={signout} className='hover hover:underline rounded-[15px] bg-gray-400 text-xl absolute right-5 top-3 text-white font-bold px-4 py-2'>Log out</div>}
+        {User && <div id="username" className='rounded-[5px] px-4 py-1 bg-blue-300 text-xl absolute top-3 left-5 font-bold hidden'></div>}
         {!loading && !User && <h2 className='absolute top-[20%] left-2/4 z-[3] -translate-x-2/4 -translate-y-2/4 text-[3rem] w-full md:text-[4rem] font-bold text-white text-center'>Welcome to my Tower Game!</h2>}
       { loading ? <div></div> :
         User ? <div id="infobar" className='absolute flex flex-col items-center bg-blue-600 w-[80%] h-[80%] top-2/4 left-2/4 z-[3] -translate-x-2/4 -translate-y-2/4'>
           <form className='flex flex-col justify-center items-center w-full' id="menu">
             <p className='text-white text-[4rem] mt-10'>Menu</p>
             <input required id="enternameinput" type="text" placeholder='Enter Your Dispay Name' maxLength={15} className='bg-white border-2 py-2 px-2 w-[60%] text-center rounded-[10px] mt-4'/>
+            <div id="enternameinputinvisible"></div>
             <input type="submit" onClick={(e) => checknameinput(e, 'create')} className='bg-gradient-to-r from-green-400 to-green-600 rounded-[15px] text-white font-bold text-3xl px-8 py-2 mb-8 mt-10 hover hover:underline' value="Create Game" />
             <input type="submit" onClick={(e) => checknameinput(e, 'join')} className='bg-gradient-to-r from-green-400 to-green-600 rounded-[15px] text-white font-bold text-3xl px-8 py-2 hover hover:underline' value="Join Game" />
           </form>
@@ -176,16 +199,7 @@ function App() {
           <div id="joingame" className='w-full flex flex-col justify-center items-center' style={{display: mode === 'join' ? 'flex' : 'none'}}>
             <div onClick={() => {setmode('none'); document.querySelector('#menu').style.display = 'flex'}} className='text-black font-bold absolute top-2 left-4 text-xl hover hover:underline'>Back to Menu</div>
             <p className='text-3xl py-3 text-white font-bold mt-8'>Active Games</p>
-            <div className='absolute left-2/4 top-2/4 -translate-x-2/4 -translate-y-2/4 bg-white w-3/4 h-[60%]'>
-              {
-                activegames.length === 0 ? <div>
-                  <p className='text-center mt-4 text-xl'>There are no active games currently</p>
-                </div> : <div>
-                  {
-                    
-                  }
-                </div>
-              }
+            <div id="joingametext" className='absolute left-2/4 top-2/4 -translate-x-2/4 -translate-y-2/4 bg-white w-3/4 h-[60%] pt-4 pl-4'>
             </div>
           </div>
 
