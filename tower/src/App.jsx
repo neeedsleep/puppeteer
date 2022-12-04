@@ -11,17 +11,12 @@ import {GoogleButton} from 'react-google-button';
 
 function App() {
   let width = window.innerWidth;
-  console.log(width);
   //single id of doc containing quizlet card info inside collection with name of user.email
   const [docid, setdocid] = useState('');
   const [User, setUser] = useState();
   const [loading, setloading] = useState(true);
   //either join or create or none (before user chooses)
   const [mode, setmode] = useState('none');
-  //because putting setactivegames to array inside onsnapshot causes infinite rerenders 
-  const [toggleactivegames, settoggleactivegames] = useState(false);
-    //list of active games to join
-  const [activegames, setactivegames] = useState([]);
   const [linksubmissionloading, setlinksubmissionloading] = useState(false);
   const [displayname, setdisplayname] = useState('');
 
@@ -30,6 +25,10 @@ function App() {
   const quizletcardstitle = document.querySelector('#quizletcardstitle');
   const quizletcards = document.querySelector('#quizletcards');
   const startgamebutton = document.querySelector('#startgamebutton');
+
+  addEventListener('online', () => {
+    console.log('you are online')
+  })
 
   function submitClick() {
     const options = {
@@ -113,18 +112,25 @@ function App() {
     snapshot.docs.forEach(doc => {
       activegamesarr.push({...doc.data()});
     })
-    joingametext.innerHTML = '';
-    activegamesarr.forEach(val => {
-      let imgurl = val.pfp.toString();
-      let div = document.createElement('div');
-      if (width > 500) {
-        div.style = "display: flex; align-items: center; margin-bottom: 1rem;";
-      } else {
-        div.style = "margin-bottom: 1rem;";
-      }
-      div.innerHTML = `<img style="border-radius: 50%; width: 2rem;" src=${imgurl}><span style="margin-left: 1rem; margin-right: 2.5rem;">${val.name}'s game</span><button class="greenbutton">Join Game</button>`;
-      joingametext.append(div);
-    })
+    if (mode === 'join') {
+      joingametext.innerHTML = '';
+      activegamesarr.forEach(val => {
+        let imgurl = val.pfp.toString();
+        let div = document.createElement('div');
+        if (width > 500) {
+          div.style = "display: flex; align-items: center; margin-bottom: 1rem;";
+        } else {
+          div.style = "margin-bottom: 1rem;";
+        }
+        div.innerHTML = `
+        <div style="margin-bottom: 0.5rem; display: flex;">
+          <img style="border-radius: 50%; width: 30px; height: 30px; max-width: 50px; margin-right: 10px;" src=${imgurl}>
+          <span style="margin-left: 1rem; margin-right: 2rem; width: 60%; word-wrap: break-word">${val.name}'s game</span>
+        </div>
+        <button class="greenbutton">Join Game</button>`;
+        joingametext.append(div);
+      })
+    }
     return unsub;
   })
   
