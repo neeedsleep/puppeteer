@@ -4,7 +4,7 @@ import { useRef } from 'react';
 import axios from 'axios';
 import { useState } from 'react';
 import {app, auth, db} from './firebase';
-import { addDoc, collection, deleteDoc, doc, onSnapshot, updateDoc } from 'firebase/firestore';
+import { addDoc, collection, deleteDoc, doc, onSnapshot, setDoc, updateDoc } from 'firebase/firestore';
 import { useEffect } from 'react';
 import {GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut} from 'firebase/auth';
 import {GoogleButton} from 'react-google-button';
@@ -26,9 +26,6 @@ function App() {
   const quizletcards = document.querySelector('#quizletcards');
   const startgamebutton = document.querySelector('#startgamebutton');
 
-  addEventListener('online', () => {
-    console.log('you are online')
-  })
 
   function submitClick() {
     const options = {
