@@ -8,6 +8,7 @@ import { addDoc, collection, deleteDoc, doc, onSnapshot, setDoc, updateDoc } fro
 import { useEffect } from 'react';
 import {GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut} from 'firebase/auth';
 import {GoogleButton} from 'react-google-button';
+import { io } from 'socket.io-client';
 
 function App() {
   let width = window.innerWidth;
@@ -25,6 +26,10 @@ function App() {
   const quizletcardstitle = document.querySelector('#quizletcardstitle');
   const quizletcards = document.querySelector('#quizletcards');
   const startgamebutton = document.querySelector('#startgamebutton');
+
+  useEffect(() => {
+    const socket = io('http://localhost:3000')
+  }, [])
 
 
   function submitClick() {
@@ -104,13 +109,17 @@ function App() {
   }
   //for joingame, whenever user clicks join game button on menu
   const joingametext = document.querySelector('#joingametext');
-  const unsub = onSnapshot(collection(db, 'teams'), (snapshot) => {
+  const unsub = onSnapshot(collection(db, 'games'), (snapshot) => {
     let activegamesarr = [];
     snapshot.docs.forEach(doc => {
       activegamesarr.push({...doc.data()});
     })
     if (mode === 'join') {
       joingametext.innerHTML = '';
+      if (activegamesarr.length === 0) {
+        joingametext.textContent = 'No Active Games';
+        return;
+      }
       activegamesarr.forEach(val => {
         let imgurl = val.pfp.toString();
         let div = document.createElement('div');
@@ -135,11 +144,13 @@ function App() {
     signOut(auth);
   }
   function startgame() {
-    const colRef = collection(db, 'teams');
+    const colRef = collection(db, 'games');
     addDoc(colRef, {
       name: displayname,
       pfp: User.photoURL
     })
+    document.querySelector('#creategame').style.display = 'none';
+    document.querySelector('#gameroom').style.display = 'flex';
   }
   function checknameinput(e, modeparam) {
     e.preventDefault();
@@ -205,6 +216,8 @@ function App() {
             <div id="joingametext" className='absolute left-2/4 top-2/4 -translate-x-2/4 -translate-y-2/4 bg-white w-3/4 h-[60%] pt-4 pl-4'>
             </div>
           </div>
+
+          <div id="gameroom" className='hidden bg-blue-500 absolute w-[80%] h-[80vh]'></div>
 
         </div> : <div className='bg-blue-600 px-16 py-8 flex flex-col items-center absolute left-2/4 top-2/4 -translate-x-2/4 -translate-y-2/4'>
           <p className='my-4 text-2xl font-bold text-white text-center'>Sign in with Google to play</p>

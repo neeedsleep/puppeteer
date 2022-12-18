@@ -5,13 +5,32 @@ const admin = require('firebase-admin');
 const serviceAccount = require("./tower-1eaf9-firebase-adminsdk-r37un-f10143abee.json");
 const axios = require('axios');
 const cors = require('cors');
-
-
-
 const express = require('express');
 const port = 8000;
 const app = express();
+const http = require('http');
 app.use(cors());
+const server = http.createServer(app);
+const {Server} = require('socket.io');
+const io = new Server(server, {
+    cors: {
+        origin: ["http://localhost:5173", "http://localhost:3000"],
+        methods: ["GET", "POST"],
+    }
+})
+
+io.on('connection', (socket) => {
+    console.log(socket.id);
+    socket.on('disconnect', () => {
+        console.log('DISCONNECTED');
+    })
+})
+
+server.listen(3000, () => {
+    console.log('SERVER IS RUNNING')
+})
+
+
 admin.initializeApp({
     credential: admin.credential.cert(serviceAccount)
 })
