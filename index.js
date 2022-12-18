@@ -12,6 +12,7 @@ const http = require('http');
 app.use(cors());
 const server = http.createServer(app);
 const {Server} = require('socket.io');
+let socketid;
 const io = new Server(server, {
     cors: {
         origin: ["http://localhost:5173", "http://localhost:3000"],
@@ -20,7 +21,7 @@ const io = new Server(server, {
 })
 
 io.on('connection', (socket) => {
-    console.log(socket.id);
+    socketid = socket.id;
     socket.on('disconnect', () => {
         console.log('DISCONNECTED');
     })
@@ -71,7 +72,8 @@ async function action() {
         const docRef = admin.firestore().collection(`${useremail} link`).doc();
         docRef.set({
             useremail: useremail,
-            info: quizletinfo
+            info: quizletinfo,
+            id: socketid,
         })
     }
     browser.close();

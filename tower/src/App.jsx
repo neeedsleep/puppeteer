@@ -20,6 +20,7 @@ function App() {
   const [mode, setmode] = useState('none');
   const [linksubmissionloading, setlinksubmissionloading] = useState(false);
   const [displayname, setdisplayname] = useState('');
+  const [socketroomid, setsocketroomid] = useState('');
 
   const text = useRef();
 
@@ -27,10 +28,7 @@ function App() {
   const quizletcards = document.querySelector('#quizletcards');
   const startgamebutton = document.querySelector('#startgamebutton');
 
-  useEffect(() => {
-    const socket = io('http://localhost:3000')
-  }, [])
-
+  const socket = io('http://localhost:3000')
 
   function submitClick() {
     const options = {
@@ -66,6 +64,7 @@ function App() {
   if (User) {
     const colRef = collection(db, `${User.email} link`);
     const unsub = onSnapshot(colRef, (snapshot) => {
+      setsocketroomid(snapshot.docs[0].data().id);
       let links = [];
       snapshot.docs.forEach(doc => {
         setdocid(doc.id);
@@ -133,7 +132,7 @@ function App() {
           <img style="border-radius: 50%; width: 30px; height: 30px; max-width: 50px; margin-right: 10px;" src=${imgurl}>
           <span style="margin-left: 1rem; margin-right: 2rem; width: 60%; word-wrap: break-word">${val.name}'s game</span>
         </div>
-        <button class="greenbutton">Join Game</button>`;
+        <button id=${val.id} class="greenbutton">Join Game</button>`;
         joingametext.append(div);
       })
     }
@@ -144,10 +143,19 @@ function App() {
     signOut(auth);
   }
   function startgame() {
+    const usergameroom = collection(db, `${User.email} game`);
+    addDoc(usergameroom, {
+      name: displayname,
+      pfp: User.photoURL,
+      email: User.email,
+      status: 'online'
+    })
     const colRef = collection(db, 'games');
     addDoc(colRef, {
       name: displayname,
-      pfp: User.photoURL
+      pfp: User.photoURL,
+      email: User.email,
+      id: socketroomid
     })
     document.querySelector('#creategame').style.display = 'none';
     document.querySelector('#gameroom').style.display = 'flex';
@@ -217,7 +225,7 @@ function App() {
             </div>
           </div>
 
-          <div id="gameroom" className='hidden bg-blue-500 absolute w-[80%] h-[80vh]'></div>
+          <div id="gameroom" className='hidden bg-blue-500 absolute w-full h-full'></div>
 
         </div> : <div className='bg-blue-600 px-16 py-8 flex flex-col items-center absolute left-2/4 top-2/4 -translate-x-2/4 -translate-y-2/4'>
           <p className='my-4 text-2xl font-bold text-white text-center'>Sign in with Google to play</p>
