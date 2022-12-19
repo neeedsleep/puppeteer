@@ -172,6 +172,17 @@ function App() {
     })
     document.querySelector('#creategame').style.display = 'none';
     document.querySelector('#gameroom').style.display = 'flex';
+    
+    let gameroomplayers = document.querySelector('#gameroomplayers');
+    const unsub = onSnapshot(collection(db, `${User.email} game`), (snapshot) => {
+      snapshot.docs.forEach(doc => {
+        console.log(doc.data());
+        let div = document.createElement('div');
+        div.innerHTML = `<img src=${doc.data().pfp}><div>${doc.data().name}</div>`;
+        gameroomplayers.append(div);
+      })
+      return unsub;
+    })
   }
   function checknameinput(e, modeparam) {
     e.preventDefault();
@@ -241,7 +252,11 @@ function App() {
             </div>
           </div>
 
-          <div id="gameroom" className='hidden bg-blue-500 absolute w-full h-full'></div>
+          <div id="gameroom" className='hidden bg-blue-500 absolute w-full h-full'>
+            <p>{User.email}'s Gameroom</p>
+            <br/>
+            <div id="gameroomplayers"></div>
+          </div>
 
         </div> : <div className='bg-blue-600 px-16 py-8 flex flex-col items-center absolute left-2/4 top-2/4 -translate-x-2/4 -translate-y-2/4'>
           <p className='my-4 text-2xl font-bold text-white text-center'>Sign in with Google to play</p>

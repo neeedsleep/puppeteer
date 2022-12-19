@@ -57,6 +57,7 @@ admin.initializeApp({
 })
 let link;
 let quizletinfo;
+let quizletname;
 let useremail;
 app.get('/results', (req, res) => {
     link = req.query.link.toString();
@@ -68,6 +69,28 @@ async function action() {
     const browser = await puppeteer.launch({headless: true});
     const page = await browser.newPage();
     await page.goto(link.toString())
+        .then(() => {
+            page.evaluate(() => {
+                const info = document.querySelectorAll('.TermText');
+                let arr = [];
+                for (let i = 0; i < info.length; i++) {
+                    arr.push(info[i].innerText);
+                }
+                return arr;
+            }).then((array) => {
+                quizletinfo = array;
+                console.log('info', quizletinfo);
+                if (quizletinfo[0]) {
+                    const docRef = admin.firestore().collection(`${useremail} link`).doc(useremail);
+                    docRef.set({
+                        useremail: useremail,
+                        info: quizletinfo,
+                        id: socketid,
+                    })
+                }
+                browser.close();
+            })
+        })
         .catch((err) => {
             console.log('THERE IS AN ERROR: ' + err);
             const docRef = admin.firestore().collection(`${useremail} link`).doc(useremail);
@@ -78,23 +101,4 @@ async function action() {
             browser.close();
             return;
         })
-    const getinfo = await page.evaluate(() => {
-        const info = document.querySelectorAll('.TermText');
-        let arr = [];
-        for (let i = 0; i < info.length; i++) {
-            arr.push(info[i].innerText);
-        }
-        return arr;
-    })
-    quizletinfo = getinfo;
-    console.log('info', quizletinfo);
-    if (quizletinfo[0]) {
-        const docRef = admin.firestore().collection(`${useremail} link`).doc(useremail);
-        docRef.set({
-            useremail: useremail,
-            info: quizletinfo,
-            id: socketid,
-        })
-    }
-    browser.close();
 }
