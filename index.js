@@ -22,8 +22,28 @@ const io = new Server(server, {
 
 io.on('connection', (socket) => {
     socketid = socket.id;
-    socket.on('disconnect', () => {
-        console.log('DISCONNECTED');
+    console.log(socketid);
+    socket.on('usersignedin', (User) => {
+        console.log('user is signed in');
+        socket.on('disconnect', () => {
+            console.log(User.email);
+            admin.firestore().collection(`${User.email} link`).doc(User.email).delete();
+            admin.firestore().collection('games').doc(User.email).delete();
+            admin.firestore().collection(`${User.email} game`).doc(User.email).delete();
+        })
+    })
+    socket.on('joingame', (roomid, roomleader, User, displayname) => {
+        socket.to(roomid);
+        console.log('leader is ' + roomleader)
+        const docRef = admin.firestore().collection(`${roomleader} game`).doc(User.email);
+        docRef.set({
+            email: User.email,
+            name: displayname,
+            pfp: User.photoURL,
+        })
+        socket.on('disconnect', () => {
+            admin.firestore().collection(`${roomleader} game`).doc(User.email).delete();
+        })
     })
 })
 
@@ -50,7 +70,7 @@ async function action() {
     await page.goto(link.toString())
         .catch((err) => {
             console.log('THERE IS AN ERROR: ' + err);
-            const docRef = admin.firestore().collection(`${useremail} link`).doc();
+            const docRef = admin.firestore().collection(`${useremail} link`).doc(useremail);
             docRef.set({
                 useremail: useremail,
                 error: 'error'
@@ -69,7 +89,7 @@ async function action() {
     quizletinfo = getinfo;
     console.log('info', quizletinfo);
     if (quizletinfo[0]) {
-        const docRef = admin.firestore().collection(`${useremail} link`).doc();
+        const docRef = admin.firestore().collection(`${useremail} link`).doc(useremail);
         docRef.set({
             useremail: useremail,
             info: quizletinfo,

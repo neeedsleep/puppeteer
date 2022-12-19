@@ -50,6 +50,11 @@ function App() {
   }
 
   useEffect(() => {
+    if (User) {
+      socket.emit('usersignedin', User)
+    }
+  }, [User])
+  useEffect(() => {
     const unsub = onAuthStateChanged(auth, user => {
       setUser(user);
       setloading(false);
@@ -64,9 +69,9 @@ function App() {
   if (User) {
     const colRef = collection(db, `${User.email} link`);
     const unsub = onSnapshot(colRef, (snapshot) => {
-      setsocketroomid(snapshot.docs[0].data().id);
       let links = [];
       snapshot.docs.forEach(doc => {
+        setsocketroomid(snapshot.docs[0].data().id);
         setdocid(doc.id);
         links.push({...doc.data()});
         if (links[0].info) setlinksubmissionloading(false);
@@ -132,26 +137,34 @@ function App() {
           <img style="border-radius: 50%; width: 30px; height: 30px; max-width: 50px; margin-right: 10px;" src=${imgurl}>
           <span style="margin-left: 1rem; margin-right: 2rem; width: 60%; word-wrap: break-word">${val.name}'s game</span>
         </div>
-        <button id=${val.id} class="greenbutton">Join Game</button>`;
+        <button id=${val.id} class="greenbutton ${val.email}">Join Game</button>`;
         joingametext.append(div);
+
+        document.querySelectorAll('.greenbutton').forEach(button => {
+          button.addEventListener('click', (e) => {
+            let roomid = e.target.id;
+            let roomleader = e.target.classList[1];
+            socket.emit('joingame', roomid, roomleader, User, displayname)
+          })
+        })
       })
+    
     }
     return unsub;
   })
-  
+
   function signout() {
     signOut(auth);
   }
   function startgame() {
-    const usergameroom = collection(db, `${User.email} game`);
-    addDoc(usergameroom, {
+    const usergameroom = doc(db, `${User.email} game`, User.email);
+    setDoc(usergameroom, {
       name: displayname,
       pfp: User.photoURL,
       email: User.email,
-      status: 'online'
     })
-    const colRef = collection(db, 'games');
-    addDoc(colRef, {
+    const docRef = doc(db, 'games', User.email);
+    setDoc(docRef, {
       name: displayname,
       pfp: User.photoURL,
       email: User.email,
@@ -187,7 +200,10 @@ function App() {
     <div className="App">
         <img className='absolute w-full h-[100vh] z-[-1] object-cover blur-[1px]' src={`../images/pattern.png`}/>
         {User && <div onClick={signout} className='hover hover:underline rounded-[15px] bg-gray-400 text-xl absolute right-5 top-3 text-white font-bold px-4 py-2'>Log out</div>}
-        {User && <div id="username" className='rounded-[5px] px-4 py-1 bg-blue-300 text-xl absolute top-3 left-5 font-bold hidden'></div>}
+        {User && <div className='rounded-[10px] px-4 py-1 bg-blue-300 text-xl absolute top-3 left-5 font-bold'>
+          <div>Signed in as {User.email}</div>
+          <div id="username" className='hidden'></div>
+        </div>}
         {!loading && !User && <h2 className='absolute top-[20%] left-2/4 z-[3] -translate-x-2/4 -translate-y-2/4 text-[3rem] w-full md:text-[4rem] font-bold text-white text-center'>Welcome to my Tower Game!</h2>}
       { loading ? <div></div> :
         User ? <div id="infobar" className='absolute flex flex-col items-center bg-blue-600 w-[80%] h-[80%] top-2/4 left-2/4 z-[3] -translate-x-2/4 -translate-y-2/4'>
