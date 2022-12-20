@@ -4,7 +4,7 @@ import { useRef } from 'react';
 import axios from 'axios';
 import { useState } from 'react';
 import {app, auth, db} from './firebase';
-import { addDoc, collection, deleteDoc, doc, onSnapshot, setDoc, updateDoc } from 'firebase/firestore';
+import { addDoc, collection, deleteDoc, doc, onSnapshot, orderBy, query, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
 import { useEffect } from 'react';
 import {GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut} from 'firebase/auth';
 import {GoogleButton} from 'react-google-button';
@@ -21,6 +21,7 @@ function App() {
   const [linksubmissionloading, setlinksubmissionloading] = useState(false);
   const [displayname, setdisplayname] = useState('');
   const [socketroomid, setsocketroomid] = useState('');
+  const [quizletname, setquizletname] = useState('');
 
   const text = useRef();
 
@@ -73,6 +74,7 @@ function App() {
       snapshot.docs.forEach(doc => {
         setsocketroomid(snapshot.docs[0].data().id);
         setdocid(doc.id);
+        setquizletname(snapshot.docs[0].data().quizletname);
         links.push({...doc.data()});
         if (links[0].info) setlinksubmissionloading(false);
         if (links[0] && links[0].error) {
@@ -125,7 +127,6 @@ function App() {
         return;
       }
       activegamesarr.forEach(val => {
-        let imgurl = val.pfp.toString();
         let div = document.createElement('div');
         if (width > 500) {
           div.style = "display: flex; align-items: center; margin-bottom: 1rem;";
@@ -133,8 +134,8 @@ function App() {
           div.style = "margin-bottom: 1rem;";
         }
         div.innerHTML = `
-        <div style="margin-bottom: 0.5rem; display: flex;">
-          <img style="border-radius: 50%; width: 30px; height: 30px; max-width: 50px; margin-right: 10px;" src=${imgurl}>
+        <div style="margin-bottom: 0.5rem; display: flex; align-items: center;">
+          <img style="border-radius: 50%; width: 45px; height: 40px; max-width: 50px; margin-right: 10px;" src=${val.pfp}>
           <span style="margin-left: 1rem; margin-right: 2rem; width: 60%; word-wrap: break-word">${val.name}'s game</span>
         </div>
         <button id=${val.id} class="greenbutton ${val.email}">Join Game</button>`;
@@ -144,7 +145,40 @@ function App() {
           button.addEventListener('click', (e) => {
             let roomid = e.target.id;
             let roomleader = e.target.classList[1];
-            socket.emit('joingame', roomid, roomleader, User, displayname)
+            socket.emit('joingame', roomid, roomleader, User, displayname);
+
+            document.querySelector('#joingame').style.display = 'none';
+            document.querySelector('#gameroom').style.display = 'block';
+
+            const unsuba = onSnapshot(collection(db, `${roomleader} game`), (snapshot) => {
+              snapshot.docs.forEach(doc => {
+                if (doc.data().email === roomleader) {
+                  document.querySelector('#roomowner').textContent = `${doc.data().name}'s gameroom`;
+                  return;
+                }
+              })
+              return unsuba;
+            })
+
+            onSnapshot(collection(db, `${roomleader} link`), (snapshot) => {
+              document.querySelector('#quizletname').textContent = snapshot.docs[0].data().quizletname;
+            })
+        
+            let gameroomplayers = document.querySelector('#gameroomplayers');
+            const q = query(collection(db, `${roomleader} game`), orderBy('createdAt', 'asc'))
+            const unsub = onSnapshot(q, (snapshot) => {
+              gameroomplayers.innerHTML = '';
+              snapshot.docs.forEach(doc => {
+                let div = document.createElement('div');
+                div.innerHTML = `<img style="border-radius: 50%;" src=${doc.data().pfp}><div>${doc.data().name}</div>`;
+                div.style = "display: flex; flex-direction: column; justify-content: center; align-items: center; margin-right: 1rem;";
+                if (doc.data().email === roomleader) {
+                  div.style.color = '#d1981d';
+                }
+                gameroomplayers.append(div);
+              })
+              return unsub;
+            })
           })
         })
       })
@@ -162,6 +196,7 @@ function App() {
       name: displayname,
       pfp: User.photoURL,
       email: User.email,
+      createdAt: serverTimestamp()
     })
     const docRef = doc(db, 'games', User.email);
     setDoc(docRef, {
@@ -171,14 +206,23 @@ function App() {
       id: socketroomid
     })
     document.querySelector('#creategame').style.display = 'none';
-    document.querySelector('#gameroom').style.display = 'flex';
+    document.querySelector('#gameroom').style.display = 'block';
     
+    document.querySelector('#quizletname').textContent = quizletname;
+
+    document.querySelector('#roomowner').textContent = `${displayname}'s gameroom`;
+
     let gameroomplayers = document.querySelector('#gameroomplayers');
-    const unsub = onSnapshot(collection(db, `${User.email} game`), (snapshot) => {
+    const q = query(collection(db, `${User.email} game`), orderBy('createdAt', 'asc'))
+    const unsub = onSnapshot(q, (snapshot) => {
+      gameroomplayers.innerHTML = '';
       snapshot.docs.forEach(doc => {
-        console.log(doc.data());
         let div = document.createElement('div');
-        div.innerHTML = `<img src=${doc.data().pfp}><div>${doc.data().name}</div>`;
+        div.innerHTML = `<img style="border-radius: 50%;" src=${doc.data().pfp}><div>${doc.data().name}</div>`;
+        div.style = "display: flex; flex-direction: column; justify-content: center; align-items: center; margin-right: 1rem;";
+        if (User.email === doc.data().email) {
+          div.style.color = '#d1981d';
+        }
         gameroomplayers.append(div);
       })
       return unsub;
@@ -206,7 +250,9 @@ function App() {
       enternameinputinvisible.style.fontSize = 'bold';
     }
   }
-
+  function leaveroom() {
+    socket.emit('disconnect')
+  }
   return (
     <div className="App">
         <img className='absolute w-full h-[100vh] z-[-1] object-cover blur-[1px]' src={`../images/pattern.png`}/>
@@ -253,9 +299,11 @@ function App() {
           </div>
 
           <div id="gameroom" className='hidden bg-blue-500 absolute w-full h-full'>
-            <p>{User.email}'s Gameroom</p>
-            <br/>
-            <div id="gameroomplayers"></div>
+            <span onClick={leaveroom} id="leaveroom" className='hover hover:underline absolute bg-[#ed7164] top-2 left-4 py-[0.2rem] px-4 rounded-[15px] text-white font-bold'>Leave Room</span>
+            <div id="roomowner" className='font-bold text-white text-center w-full text-xl mt-4'></div>
+            <div id="quizletname" className='text-white font-bold w-full text-center mt-3 text-[1.5rem]'></div>
+            <div className='text-black font-bold ml-4 text-[1.2rem] mb-3'>Players</div>
+            <div id="gameroomplayers" className='flex ml-4'></div>
           </div>
 
         </div> : <div className='bg-blue-600 px-16 py-8 flex flex-col items-center absolute left-2/4 top-2/4 -translate-x-2/4 -translate-y-2/4'>

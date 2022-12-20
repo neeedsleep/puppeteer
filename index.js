@@ -22,11 +22,8 @@ const io = new Server(server, {
 
 io.on('connection', (socket) => {
     socketid = socket.id;
-    console.log(socketid);
     socket.on('usersignedin', (User) => {
-        console.log('user is signed in');
         socket.on('disconnect', () => {
-            console.log(User.email);
             admin.firestore().collection(`${User.email} link`).doc(User.email).delete();
             admin.firestore().collection('games').doc(User.email).delete();
             admin.firestore().collection(`${User.email} game`).doc(User.email).delete();
@@ -34,12 +31,12 @@ io.on('connection', (socket) => {
     })
     socket.on('joingame', (roomid, roomleader, User, displayname) => {
         socket.to(roomid);
-        console.log('leader is ' + roomleader)
         const docRef = admin.firestore().collection(`${roomleader} game`).doc(User.email);
         docRef.set({
             email: User.email,
             name: displayname,
             pfp: User.photoURL,
+            createdAt: admin.firestore.FieldValue.serverTimestamp()
         })
         socket.on('disconnect', () => {
             admin.firestore().collection(`${roomleader} game`).doc(User.email).delete();
@@ -57,7 +54,6 @@ admin.initializeApp({
 })
 let link;
 let quizletinfo;
-let quizletname;
 let useremail;
 app.get('/results', (req, res) => {
     link = req.query.link.toString();
@@ -72,13 +68,14 @@ async function action() {
         .then(() => {
             page.evaluate(() => {
                 const info = document.querySelectorAll('.TermText');
+                const getquizletname = document.querySelector(".SetPage-titleWrapper h1").innerText;
                 let arr = [];
                 for (let i = 0; i < info.length; i++) {
                     arr.push(info[i].innerText);
                 }
-                return arr;
+                return [arr, getquizletname]
             }).then((array) => {
-                quizletinfo = array;
+                quizletinfo = array[0];
                 console.log('info', quizletinfo);
                 if (quizletinfo[0]) {
                     const docRef = admin.firestore().collection(`${useremail} link`).doc(useremail);
@@ -86,6 +83,7 @@ async function action() {
                         useremail: useremail,
                         info: quizletinfo,
                         id: socketid,
+                        quizletname: array[1]
                     })
                 }
                 browser.close();
